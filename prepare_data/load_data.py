@@ -21,13 +21,6 @@ class LoadData:
 
 
 
-# def get_data(dataset_name):
-#     examples, info = tfds.load(dataset_name, with_info=True, as_supervised=True)
-#     train = examples['train']
-#     valid = examples['validation']
-#     test = examples['test']
-#     return train, valid, test
-
 
 if __name__ == '__main__':
     dataset_name = 'ted_hrlr_translate/pt_to_en'
