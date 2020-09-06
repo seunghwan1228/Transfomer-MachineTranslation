@@ -1,0 +1,24 @@
+# Path
+preprocess_text_path: prepare_data/text
+
+# Dataset_name
+dataset_name: 'ted_hrlr_translate/pt_to_en'
+
+# Tokenizer
+tokenizer: 'subword'  # 'sentencepiece', 'word'
+
+
+vocab_size: 32000
+
+# Sentence-Piece Config
+
+lang_one_file: 'lang_one.txt'
+lang_two_file: 'lang_two.txt'
+pad_id: 0
+bos_id: 1
+eos_id: 2
+unk_id: 3
+spm_model_saver: 'prepare_data/spm/'
+model_prefix: 'prepare_data/spm/tp_spm'
+character_coverage: 1.0
+model_type: 'bpe'  # unigram, bpe, char, word
