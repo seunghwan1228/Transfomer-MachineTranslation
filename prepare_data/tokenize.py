@@ -192,7 +192,7 @@ class TokenizeData:
         lang_two_vocab_size = lang_two_tokenizer.vocab_size()
         return lang_one_tokenized, lang_two_tokenized
 
-    def _convert_to_ids(self, lang_one_list, lang_two_list):
+    def _convert_to_ids(self, lang_one_list, lang_two_list, is_train):
         '''
         Tokenizer Encode Wrapper
         '''
@@ -202,41 +202,66 @@ class TokenizeData:
             print('Create Tokenizer for Language One & Language Two\nSubword Tokenizer Requires some time to fit...')
 
         if self.config['tokenizer'] == 'subword':
-            lang_one_tokenizer, lang_two_tokenizer = self._subword_tokenizer(lang_one_list, lang_two_list)
-            lang_one_result, lang_two_result = self._subword_tokenizer_to_ids(lang_one_list, lang_two_list,
-                                                                              lang_one_tokenizer, lang_two_tokenizer)
+            if is_train:
+                lang_one_tokenizer, lang_two_tokenizer = self._subword_tokenizer(lang_one_list, lang_two_list)
+                lang_one_vocab_size = lang_one_tokenizer.vocab_size + 3
+                lang_two_vocab_size = lang_two_tokenizer.vocab_size + 3
+                self.lang_one_tokenizer = lang_one_tokenizer
+                self.lang_two_tokenizer = lang_two_tokenizer
+                self.lang_one_vocab_size = lang_one_vocab_size
+                self.lang_two_vocab_size = lang_two_vocab_size
 
-            lang_one_vocab_size = lang_one_tokenizer.vocab_size + 3
-            lang_two_vocab_size = lang_two_tokenizer.vocab_size + 3
+
+            lang_one_result, lang_two_result = self._subword_tokenizer_to_ids(lang_one_list,
+                                                                              lang_two_list,
+                                                                              self.lang_one_tokenizer,
+                                                                              self.lang_two_tokenizer)
+
+
 
         elif self.config['tokenizer'] == 'sentencepiece':
 
             print(f'Training Sentence Piece... \n')
             self._sentencepiece_tokenizer_trainer()
-            lang_one_tokenizer, lang_two_tokenizer = self._load_sentencepiece()
-            lang_one_result, lang_two_result = self._sentencepiece_tokenizer_to_ids(lang_one_list, lang_two_list,
-                                                                                    lang_one_tokenizer,
-                                                                                    lang_two_tokenizer)
+            if is_train:
+                lang_one_tokenizer, lang_two_tokenizer = self._load_sentencepiece()
+                lang_one_vocab_size = self.config['vocab_size']
+                lang_two_vocab_size = self.config['vocab_size']
+                self.lang_one_tokenizer = lang_one_tokenizer
+                self.lang_two_tokenizer = lang_two_tokenizer
+                self.lang_one_vocab_size = lang_one_vocab_size
+                self.lang_two_vocab_size = lang_two_vocab_size
 
-            lang_one_vocab_size = self.config['vocab_size']
-            lang_two_vocab_size = self.config['vocab_size']
+            lang_one_result, lang_two_result = self._sentencepiece_tokenizer_to_ids(lang_one_list,
+                                                                                    lang_two_list,
+                                                                                    self.lang_one_tokenizer,
+                                                                                    self.lang_two_tokenizer)
+
+
 
         elif self.config['tokenizer'] == 'word':
-            lang_one_tokenizer, lang_two_tokenizer = self._word_tokenizer(lang_one_list, lang_two_list)
-            lang_one_result, lang_two_result = self._word_tokenizer_to_ids(lang_one_list, lang_two_list,
-                                                                           lang_one_tokenizer, lang_two_tokenizer)
+            if is_train:
+                lang_one_tokenizer, lang_two_tokenizer = self._word_tokenizer(lang_one_list, lang_two_list)
+                lang_one_vocab_size = len(lang_one_tokenizer.word_index) + 3
+                lang_two_vocab_size = len(lang_two_tokenizer.word_index) + 3
+                self.lang_one_tokenizer = lang_one_tokenizer
+                self.lang_two_tokenizer = lang_two_tokenizer
+                self.lang_one_vocab_size = lang_one_vocab_size
+                self.lang_two_vocab_size = lang_two_vocab_size
 
-            lang_one_vocab_size = len(lang_one_tokenizer.word_index) + 3
-            lang_two_vocab_size = len(lang_two_tokenizer.word_index) + 3
+            lang_one_result, lang_two_result = self._word_tokenizer_to_ids(lang_one_list,
+                                                                           lang_two_list,
+                                                                           self.lang_one_tokenizer,
+                                                                           self.lang_two_tokenizer)
 
         else:
             raise ValueError(
                 f'The Config -- tokenizer should be in <subword>, <sentencepiece>, or <word> NOT {self.config["tokenizer"]}')
 
-        self.lang_one_tokenizer = lang_one_tokenizer
-        self.lang_two_tokenizer = lang_two_tokenizer
-        self.lang_one_vocab_size = lang_one_vocab_size
-        self.lang_two_vocab_size = lang_two_vocab_size
+        # self.lang_one_tokenizer = lang_one_tokenizer
+        # self.lang_two_tokenizer = lang_two_tokenizer
+        # self.lang_one_vocab_size = lang_one_vocab_size
+        # self.lang_two_vocab_size = lang_two_vocab_size
 
         return lang_one_result, lang_two_result
 
