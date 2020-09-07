@@ -12,7 +12,7 @@ class LoadData:
         examples, info = tfds.load(str(self.dataset_name),
                                 with_info=True,
                                 as_supervised=True)
-        print(examples)
+
         train_data = examples['train']
         valid_data = examples['validation']
         test_data = examples['test']

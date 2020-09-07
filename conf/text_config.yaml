@@ -5,7 +5,9 @@ preprocess_text_path: prepare_data/text
 dataset_name: 'ted_hrlr_translate/pt_to_en'
 
 # Tokenizer
-tokenizer: 'subword'  # 'sentencepiece', 'word'
+# Tokenizer Options
+# 'subword', 'sentencepiece', 'word
+tokenizer: 'word'
 
 
 vocab_size: 32000
@@ -20,4 +22,8 @@ unk_id: 3
 spm_model_saver: 'prepare_data/spm/'
 model_prefix: 'prepare_data/spm/tp_spm'
 character_coverage: 1.0
-model_type: 'bpe'  # unigram, bpe, char, word
+
+# SentencePiece Model Type
+# Model Type options
+# 'bpe', 'unigram', 'char', 'word'
+model_type: 'bpe'
