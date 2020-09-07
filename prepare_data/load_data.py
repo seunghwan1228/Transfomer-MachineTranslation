@@ -30,4 +30,3 @@ if __name__ == '__main__':
         print(n)
         print(lang1)
         print(lang2)
-        print()
