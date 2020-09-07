@@ -65,5 +65,6 @@ class CreateData:
 
 
 if __name__ == '__main__':
+
     data_creator = CreateData(config_path='conf')
     train_datasets, valid_datasets, test_datasets = data_creator.create_all()
