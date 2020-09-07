@@ -94,7 +94,6 @@ class TokenizeData:
 
 
 
-    # TODO: REQUIRES TO BUILD BASIC TOKENIZER
     def _word_tokenizer(self, lang_one_list, lang_two_list):
         tokenizer_one = tf.keras.preprocessing.text.Tokenizer(num_words=config['vocab_size'],
                                                               oov_token='<UNK>')
@@ -107,18 +106,21 @@ class TokenizeData:
 
         return tokenizer_one, tokenizer_two
 
-    # TODO: REQQUIRES TO BUILD ONE METHOD TO TOKENIZE OTHER TOKENIZERS
+
+
     # To create one function to convert text to ids
     def _subword_tokenizer_to_ids(self,
                                   lang_one_list,
                                   lang_two_list,
                                   sub_word_tokenizer_one,
                                   sub_word_tokenizer_two):
+
         lang_one_tokenized = []
         lang_two_tokenized = []
 
         lang_one_sos, lang_one_eos = self._subword_add_special_token(sub_word_tokenizer_one)
         lang_two_sos, lang_two_eos = self._subword_add_special_token(sub_word_tokenizer_two)
+
         for sentence in lang_one_list:
             if self.add_start_end:
                 lang_one_encoded = [lang_one_sos] + sub_word_tokenizer_one.encode(sentence) + [lang_one_eos]
@@ -136,16 +138,92 @@ class TokenizeData:
         return lang_one_tokenized, lang_two_tokenized
 
 
+    def _word_tokenizer_to_ids(self,
+                               lang_one_list,
+                               lang_two_list,
+                               word_tokenizer_one,
+                               word_tokenizer_two):
+        lang_one_tokenized = []
+        lang_two_tokenized = []
 
-    def _convert_to_ids(self, lang_one_list, lang_two_list, lang_one_tokenizer, lang_two_tokenizer):
-        pass
+        lang_one_sos, lang_one_eos = self._word_tokenizer_add_special_token(word_tokenizer_one)
+        lang_two_sos, lang_two_eos = self._word_tokenizer_add_special_token(word_tokenizer_two)
+
+        for sentence in lang_one_list:
+            if self.add_start_end:
+                lang_one_encoded = word_tokenizer_one.texts_to_sequences([sentence])
+                lang_one_encoded = [lang_one_sos] + lang_one_encoded[0] + [lang_one_eos]
+            else:
+                lang_one_encoded = word_tokenizer_one.texts_to_sequences([sentence])
+            lang_one_tokenized.append(lang_one_encoded)
+
+        for sentence in lang_two_list:
+            if self.add_start_end:
+                lang_two_encoded = word_tokenizer_two.texts_to_sequences([sentence])
+                lang_two_encoded = [lang_two_sos] + lang_two_encoded[0] + [lang_two_eos]
+            else:
+                lang_two_encoded = word_tokenizer_two.texts_to_sequences([sentence])
+            lang_two_tokenized.append(lang_two_encoded)
+
+        return lang_one_tokenized, lang_two_tokenized
+
+
+    def _sentencepiece_tokenizer_to_ids(self, lang_one_list, lang_two_list, lang_one_tokenizer, lang_two_tokenizer):
+        lang_one_tokenized = []
+        lang_two_tokenized = []
+
+        if self.add_start_end:
+            self._spm_add_special_token(lang_one_tokenizer)
+            self._spm_add_special_token(lang_two_tokenizer)
+
+        for sentence in lang_one_list:
+            lang_one_encoded = lang_one_tokenizer.EncodeAsIds(sentence)
+            lang_one_tokenized.append(lang_one_encoded)
+
+        for sentence in lang_two_list:
+            lang_two_encoded = lang_two_tokenizer.EncodeAsIds(sentence)
+            lang_two_tokenized.append(lang_two_encoded)
+
+        return lang_one_tokenized, lang_two_tokenized
 
 
 
-    # TODO: REQUIRES TO ADD <SOS> & <EOS> TOKEN
+
+    def _convert_to_ids(self, lang_one_list, lang_two_list):
+        '''
+        Tokenizer Wrapper
+        '''
+        if self.config['tokenizer'] == 'subword':
+            lang_one_tokenizer, lang_two_tokenizer = self._subword_tokenizer(lang_one_list, lang_two_list)
+            lang_one_result, lang_two_result = self._subword_tokenizer_to_ids(lang_one_list, lang_two_list, lang_one_tokenizer, lang_two_tokenizer)
+
+        elif self.config['tokenizer'] == 'sentencepiece':
+            lang_one_tokenizer, lang_two_tokenizer = self._load_sentencepiece()
+            lang_one_result, lang_two_result = self._sentencepiece_tokenizer_to_ids(lang_one_list, lang_two_list, lang_one_tokenizer, lang_two_tokenizer)
+
+        elif self.config['tokenizer'] == 'word':
+            lang_one_tokenizer, lang_two_tokenizer = self._word_tokenizer(lang_one_list, lang_two_list)
+            lang_one_result, lang_two_result = self._word_tokenizer_to_ids(lang_one_list, lang_two_list, lang_one_tokenizer, lang_two_tokenizer)
+
+        else:
+            raise ValueError(f'The Config -- tokenizer should be in <subword>, <sentencepiece>, or <word> NOT {self.config["tokenizer"]}')
+
+        return lang_one_result, lang_two_result
+
+
+
     def _subword_add_special_token(self, tokenizer):
         sos_token = tokenizer.vocab_size
         eos_token = tokenizer.vocab_size + 1
+        return sos_token, eos_token
+
+    def _spm_add_special_token(self, tokenizer):
+        return tokenizer.SetEncodeExtraOptions('bos:eos')
+
+
+    def _word_tokenizer_add_special_token(self, tokenizer):
+        sos_token = len(tokenizer.index_word) + 1
+        eos_token = len(tokenizer.index_word) + 2
         return sos_token, eos_token
 
 
@@ -166,18 +244,19 @@ if __name__ == '__main__':
 
     # # Toknizer Test  -- Subword
     lang_one_tok_sub, lang_two_tok_sub = tokenizer._subword_tokenizer(t[0], t[1])
-    lang_two_tok_sub.encode('hello, this is the test sentence, for the subword tokenizer')
+    # sub_word_one_result, sub_word_two_result = tokenizer._subword_tokenizer_to_ids(sample_text,
+    #                                                                                sample_text,
+    #                                                                                lang_one_tok_sub,
+    #                                                                                lang_two_tok_sub)
 
-    lang_two_tok_sub.encode(sample_text)
 
-    lang_two_tok_sub.vocab_size
+
 
     # # Tokenizer Test -- Sentencepiece
-    # tokenizer._sentencepiece_tokenizer_trainer()
-    #
-    # lang_one_tok_spm, lang_two_tok_spm = tokenizer._load_sentencepiece()
-    # lang_two_tok_spm.EncodeAsIds('hello, this is the test sentence, for the sentence piece tokenizer')
-    # lang_two_tok_spm.EncodeAsPieces('hello, this is the test sentence, for the sentence piece tokenizer')
+    tokenizer._sentencepiece_tokenizer_trainer()
+    # tokenizer._spm_tokenizer_to_ids(sample_text, sample_text)
 
-    # Tokenizer TEst -- Word Tokenize
-    # lang_one_tok_tk, lang_two_tok_tk = tokenizer._word_tokenize(t[0], t[1])
+
+    # Tokenizer Test -- Word Tokenize
+    lang_one_tok_tk, lang_two_tok_tk = tokenizer._word_tokenizer(t[0], t[1])
+    # tokenizer._word_tokenizer_to_ids(sample_text, sample_text, lang_one_tok_tk, lang_two_tok_tk)
