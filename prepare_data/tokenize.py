@@ -318,13 +318,10 @@ if __name__ == '__main__':
     # Define Tokenizer
     tokenizer = TokenizeData(config, t)
 
-
     # Tokenizer Test
     encode_one, encode_two = tokenizer.convert_to_ids(t[0], t[1], is_train=True)
-
     decode_one = tokenizer.convert_to_texts(encode_one[0], tokenizer.lang_one_tokenizer, tokenizer.lang_one_sos, tokenizer.lang_one_eos)
     decode_two = tokenizer.convert_to_texts(encode_two[0], tokenizer.lang_two_tokenizer, tokenizer.lang_two_sos, tokenizer.lang_two_eos)
-
 
     # Checker
     print(f'Tokenizer Method::{config["tokenizer"]}\n')
