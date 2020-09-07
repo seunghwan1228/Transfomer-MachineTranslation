@@ -89,10 +89,10 @@ class TokenizeData:
         return lang_one_tokenizer, lang_two_tokenizer
 
     def _word_tokenizer(self, lang_one_list, lang_two_list):
-        tokenizer_one = tf.keras.preprocessing.text.Tokenizer(num_words=config['vocab_size'],
+        tokenizer_one = tf.keras.preprocessing.text.Tokenizer(num_words=self.config['vocab_size'],
                                                               oov_token='<UNK>')
 
-        tokenizer_two = tf.keras.preprocessing.text.Tokenizer(num_words=config['vocab_size'],
+        tokenizer_two = tf.keras.preprocessing.text.Tokenizer(num_words=self.config['vocab_size'],
                                                               oov_token='<UNK>')
 
         tokenizer_one.fit_on_texts(lang_one_list)
