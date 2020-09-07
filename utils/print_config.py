@@ -28,7 +28,6 @@ class PrintConfig:
         self._print_dict(self.config)
 
 
-
 if __name__ == '__main__':
     config = LoadConfig('conf').load_config()
     pconf = PrintConfig(config).print_config()
