@@ -99,6 +99,7 @@ if __name__ =='__main__':
     train_d, valid_d, test_d, infos = data_gen.get_data()
     tmp_processor = PreprocessText(config_dict, train_d, valid_d, test_d, True)
     a, b, c = tmp_processor.clean_text()
+
     print(a[0][0])
     print(a[1][0])
 
