@@ -20,8 +20,6 @@ class LoadData:
         return train_data, valid_data, test_data, info
 
 
-
-
 if __name__ == '__main__':
     dataset_name = 'ted_hrlr_translate/pt_to_en'
     data_loader = LoadData(dataset_name)

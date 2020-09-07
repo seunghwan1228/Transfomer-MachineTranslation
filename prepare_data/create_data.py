@@ -29,7 +29,7 @@ class CreateData:
         self.tokenizer = TokenizeData(self.config, self.train_data, add_start_end=self.add_start_end)
 
     def _tokenize_data(self, dataset, is_train):
-        encoded_lang_one, encoded_lang_two = self.tokenizer._convert_to_ids(dataset[0], dataset[1], is_train=is_train)
+        encoded_lang_one, encoded_lang_two = self.tokenizer.convert_to_ids(dataset[0], dataset[1], is_train=is_train)
         return encoded_lang_one, encoded_lang_two
 
 
@@ -50,27 +50,20 @@ class CreateData:
 
 
     def create_all(self):
+        print('Trainig Data Processing...')
         train_datasets = self._create_tf_dataset(self.train_data, is_train=True)
+
+        print('Valid Data Processing...')
         valid_datasets = self._create_tf_dataset(self.valid_data, is_train=False)
+
+        print('Test Data Processing...')
         test_datasets = self._create_tf_dataset(self.test_data, is_train=False)
 
+        print('Create Tensorflow Dataset Complete..\n')
         return train_datasets, valid_datasets, test_datasets
-
-
-
-
-
-
-
-
 
 
 
 if __name__ == '__main__':
     data_creator = CreateData(config_path='conf')
-    # lang_one, lang_two = data_creator.tokenize_data(data_creator.train_data)
-
     train_datasets, valid_datasets, test_datasets = data_creator.create_all()
-
-    # TODO: REQUIRES TO COMPARE THE TOKENIZED ONE
-    # data_creator.tokenizer.lang_one_tokenizer.word_index

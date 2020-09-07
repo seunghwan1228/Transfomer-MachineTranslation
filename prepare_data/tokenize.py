@@ -37,9 +37,9 @@ class TokenizeData:
 
     def _sentencepiece_tokenizer_trainer(self):
         print('To Perfome the Sentence Piece Please run Preprocessor_data to store .txt file !!')
-        os.makedirs(config['spm_model_saver'], exist_ok=True)
+        os.makedirs(self.config['spm_model_saver'], exist_ok=True)
 
-        print(f'The Sentence Piece Model will save at {config["spm_model_saver"]}')
+        print(f'The Sentence Piece Model will save at {self.config["spm_model_saver"]}')
         training_templte = '--input={} \
         --pad_id={} \
         --bos_id={} \
@@ -188,45 +188,43 @@ class TokenizeData:
         self.lang_one_sos, self.lang_one_eos = self.config['bos_id'], self.config['eos_id']
         self.lang_two_sos, self.lang_two_eos = self.config['bos_id'], self.config['eos_id']
 
-        lang_one_vocab_size = lang_one_tokenizer.vocab_size()
-        lang_two_vocab_size = lang_two_tokenizer.vocab_size()
+
         return lang_one_tokenized, lang_two_tokenized
 
-    def _convert_to_ids(self, lang_one_list, lang_two_list, is_train):
+    def convert_to_ids(self, lang_one_list, lang_two_list, is_train):
         '''
         Tokenizer Encode Wrapper
         '''
         print(f'Toknizer Type:: {self.config["tokenizer"]}')
 
-        if self.config["tokenizer"] == 'subword':
-            print('Create Tokenizer for Language One & Language Two\nSubword Tokenizer Requires some time to fit...')
-
         if self.config['tokenizer'] == 'subword':
+            print('Create Tokenizer for Language One & Language Two\nSubword Tokenizer Requires some time to fit...')
             if is_train:
                 lang_one_tokenizer, lang_two_tokenizer = self._subword_tokenizer(lang_one_list, lang_two_list)
+
                 lang_one_vocab_size = lang_one_tokenizer.vocab_size + 3
                 lang_two_vocab_size = lang_two_tokenizer.vocab_size + 3
+
                 self.lang_one_tokenizer = lang_one_tokenizer
                 self.lang_two_tokenizer = lang_two_tokenizer
                 self.lang_one_vocab_size = lang_one_vocab_size
                 self.lang_two_vocab_size = lang_two_vocab_size
-
 
             lang_one_result, lang_two_result = self._subword_tokenizer_to_ids(lang_one_list,
                                                                               lang_two_list,
                                                                               self.lang_one_tokenizer,
                                                                               self.lang_two_tokenizer)
 
-
-
         elif self.config['tokenizer'] == 'sentencepiece':
 
-            print(f'Training Sentence Piece... \n')
-            self._sentencepiece_tokenizer_trainer()
             if is_train:
+                print(f'Training Sentence Piece... \n')
+                self._sentencepiece_tokenizer_trainer()
                 lang_one_tokenizer, lang_two_tokenizer = self._load_sentencepiece()
+
                 lang_one_vocab_size = self.config['vocab_size']
                 lang_two_vocab_size = self.config['vocab_size']
+
                 self.lang_one_tokenizer = lang_one_tokenizer
                 self.lang_two_tokenizer = lang_two_tokenizer
                 self.lang_one_vocab_size = lang_one_vocab_size
@@ -238,12 +236,15 @@ class TokenizeData:
                                                                                     self.lang_two_tokenizer)
 
 
-
         elif self.config['tokenizer'] == 'word':
+
             if is_train:
+                print(f'Basic Tokenizer from Tensorflow.keras.text.Tokenizer')
                 lang_one_tokenizer, lang_two_tokenizer = self._word_tokenizer(lang_one_list, lang_two_list)
+
                 lang_one_vocab_size = len(lang_one_tokenizer.word_index) + 3
                 lang_two_vocab_size = len(lang_two_tokenizer.word_index) + 3
+
                 self.lang_one_tokenizer = lang_one_tokenizer
                 self.lang_two_tokenizer = lang_two_tokenizer
                 self.lang_one_vocab_size = lang_one_vocab_size
@@ -265,11 +266,12 @@ class TokenizeData:
 
         return lang_one_result, lang_two_result
 
-    def _convert_to_texts(self, language_id, tokenizer, sos_token_num, eos_token_num):
+    def convert_to_texts(self, language_id, tokenizer, sos_token_num, eos_token_num):
         '''
         Tokenizer Decode Wrapper
         '''
         # Trim token
+        language_id = language_id[language_id != 0]
         if language_id[0] == sos_token_num:
             language_id = language_id[1:]
 
@@ -277,9 +279,12 @@ class TokenizeData:
             language_id = language_id[:-1]
 
         if self.config['tokenizer'] == 'subword':
+            language_id = language_id[language_id != sos_token_num]
+            language_id = language_id[language_id != eos_token_num]
             decoded_language_id = tokenizer.decode(language_id)
 
         elif self.config['tokenizer'] == 'sentencepiece':
+            language_id = language_id.tolist()
             decoded_language_id = tokenizer.DecodeIds(language_id)
 
         elif self.config['tokenizer'] == 'word':
@@ -315,10 +320,11 @@ if __name__ == '__main__':
 
 
     # Tokenizer Test
-    encode_one, encode_two = tokenizer._convert_to_ids(t[0], t[1])
+    encode_one, encode_two = tokenizer.convert_to_ids(t[0], t[1], is_train=True)
 
-    decode_one = tokenizer._convert_to_texts(encode_one[0], tokenizer.lang_one_tokenizer, tokenizer.lang_one_sos, tokenizer.lang_one_eos)
-    decode_two = tokenizer._convert_to_texts(encode_two[0], tokenizer.lang_two_tokenizer, tokenizer.lang_two_sos, tokenizer.lang_two_eos)
+    decode_one = tokenizer.convert_to_texts(encode_one[0], tokenizer.lang_one_tokenizer, tokenizer.lang_one_sos, tokenizer.lang_one_eos)
+    decode_two = tokenizer.convert_to_texts(encode_two[0], tokenizer.lang_two_tokenizer, tokenizer.lang_two_sos, tokenizer.lang_two_eos)
+
 
     # Checker
     print(f'Tokenizer Method::{config["tokenizer"]}\n')
