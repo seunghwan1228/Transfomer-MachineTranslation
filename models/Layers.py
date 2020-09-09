@@ -35,13 +35,11 @@ class ScaledDotAttention(tf.keras.layers.Layer):
         att_logit = qk_mul / k_dim                    # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
 
         if mask is not None:
-            att_logit += (mask * -1e9)
-            # Add requires the same shape - Broad cast H, seq_len_q
+            att_logit += (mask * -1e9)                # Add requires the same shape - Broad cast H, seq_len_q
 
         att_weight = tf.nn.softmax(att_logit, axis=-1) # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
         context_vector = tf.matmul(att_weight, v)      # (B, seq_len_q, seq_len_kv) @ (B, seq_len_kv, dim) == (B, seq_len_q, dim)   <- 3-D Tensor
                                                        # (B, H, seq_len_q, seq_len_kv) @ (B, H, seq_len_kv, depth) == (B, H, seq_len_q, depth)  <- 4-D Tensor
-
         return context_vector, att_weight
 
 
@@ -112,12 +110,9 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         if drop_n_heads == 0:
             return x
 
-
-
         remain_heads = tf.ones(shape=(self.num_heads - drop_n_heads), dtype=tf.float32)
         drop_heads = tf.zeros(shape=(drop_n_heads), dtype=tf.float32)
         head_drop_mask = tf.concat((remain_heads, drop_heads), axis=-1)
-
 
         tf_array = tf.TensorArray(dtype=tf.float32, size=batch_size)
         for i in range(batch_size):
@@ -126,7 +121,6 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         tf_array = tf_array.stack()                                         # (B, H)
         tf_array = tf_array[..., tf.newaxis, tf.newaxis]                    # (b, H, 1, 1)
-
 
         drop_result = tf.math.multiply(x, tf_array)
 
