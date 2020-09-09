@@ -15,7 +15,6 @@ import numpy as np
 
 class ScaledDotAttention(tf.keras.layers.Layer):
     '''
-    TODO: REQUIRES TO MODIFY SHAPE CHECKER WITH 4-D TENSORS
     Softmax_k {(Q @ K^t) / sqrt(k_dim)} @ V    <- Attn_weight @ V
     '''
     def __init__(self, **kwargs):
