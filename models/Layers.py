@@ -160,6 +160,51 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return linear_out, attention_weight
 
 
+class FeedForwardNetwork(tf.keras.layers.Layer):
+    def __init__(self, feed_forward_dim, model_dim, dropout_rate, **kwargs):
+        super(FeedForwardNetwork, self).__init__(**kwargs)
+        self.feed_forward_dim = feed_forward_dim
+        self.model_dim = model_dim
+        self.dropout_rate = dropout_rate
+
+        self.d1 = tf.keras.layers.Dense(feed_forward_dim)
+        self.d1_act = tf.keras.layers.Activation('relu')
+        self.dr1 = tf.keras.layers.Dropout(dropout_rate)
+
+        self.d2 = tf.keras.layers.Dense(model_dim)
+        self.d2_act = tf.keras.layers.Activation('relu')
+        self.dr2 = tf.keras.layers.Dropout(dropout_rate)
+
+        self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-9)
+
+
+    def call(self, inputs, training):
+        input_res = inputs                  # (B, seq_len, model_dim)
+        x = self.d1(inputs)                 # (B, seq_len ,feedforward_dim)
+        x = self.d1_act(x)                  # (B, seq_len ,feedforward_dim)
+        x = self.dr1(x)                     # (B, seq_len ,feedforward_dim)
+        x = self.d2(x)                      # (B, seq_len ,model_dim)
+        x = self.d2_act(x)                  # (B, seq_len ,model_dim)
+        x = self.dr2(x)                     # (B, seq_len ,model_dim)
+        res_con = input_res + x             # (B, seq_len ,model_dim)
+        output_ = self.layer_norm(res_con)  # (B, seq_len ,model_dim)
+        return output_
+
+
+
+class EncoderBlock(tf.keras.layers.Layer):
+    def __init__(self, num_heads, model_dim,  dropout_rate, mha_concat_query, debug = False, **kwargs):
+        super(EncoderBlock, self).__init__(**kwargs)
+        self.num_heads= num_heads
+        self.model_dim = model_dim
+        self.dropout_rate = dropout_rate
+        self.concat_query = mha_concat_query
+        self.debug = debug
+
+        self.mha = MultiHeadAttention(num_heads, model_dim, concat_query = self.concat_query, debug=self.debug)
+
+
+
 
 
 
