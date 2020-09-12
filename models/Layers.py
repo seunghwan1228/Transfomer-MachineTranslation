@@ -10,13 +10,13 @@
 # 7) Decoder
 
 import tensorflow as tf
-import numpy as np
 
 
 class ScaledDotAttention(tf.keras.layers.Layer):
     '''
     Softmax_k {(Q @ K^t) / sqrt(k_dim)} @ V    <- Attn_weight @ V
     '''
+
     def __init__(self, **kwargs):
         super(ScaledDotAttention, self).__init__(**kwargs)
 
@@ -29,20 +29,19 @@ class ScaledDotAttention(tf.keras.layers.Layer):
         # 3-D: (B, 1, seq_len_q)
         # 4-D: (B, 1, 1, seq_len_q)
 
-        qk_mul = tf.matmul(q, k, transpose_b=True)    # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
+        qk_mul = tf.matmul(q, k, transpose_b=True)  # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
         k_dim = tf.cast(tf.shape(k)[-1], tf.float32)
 
-        att_logit = qk_mul / k_dim                    # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
+        att_logit = qk_mul / k_dim  # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
 
         if mask is not None:
-            att_logit += (mask * -1e9)                # Add requires the same shape - Broad cast H, seq_len_q
+            att_logit += (mask * -1e9)  # Add requires the same shape - Broad cast H, seq_len_q
 
-        att_weight = tf.nn.softmax(att_logit, axis=-1) # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
-        context_vector = tf.matmul(att_weight, v)      # (B, seq_len_q, seq_len_kv) @ (B, seq_len_kv, dim) == (B, seq_len_q, dim)   <- 3-D Tensor
-                                                       # (B, H, seq_len_q, seq_len_kv) @ (B, H, seq_len_kv, depth) == (B, H, seq_len_q, depth)  <- 4-D Tensor
+        att_weight = tf.nn.softmax(att_logit, axis=-1)  # (B, seq_len_q, seq_len_kv) | (B, H, seq_len_q, seq_len_kv)
+        context_vector = tf.matmul(att_weight,
+                                   v)  # (B, seq_len_q, seq_len_kv) @ (B, seq_len_kv, dim) == (B, seq_len_q, dim)   <- 3-D Tensor
+        # (B, H, seq_len_q, seq_len_kv) @ (B, H, seq_len_kv, depth) == (B, H, seq_len_q, depth)  <- 4-D Tensor
         return context_vector, att_weight
-
-
 
 
 class MultiHeadAttention(tf.keras.layers.Layer):
@@ -53,6 +52,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     RETURN VALUES
     - CONTEXT, ATTENTION_WEIGHT
     '''
+
     def __init__(self, num_heads, model_dim, concat_query, debug=False, **kwargs):
         super(MultiHeadAttention, self).__init__(**kwargs)
         self.num_heads = num_heads
@@ -72,6 +72,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         self.linear = tf.keras.layers.Dense(units=model_dim)
 
         self.debug = debug
+
     def split_head(self, x):
         '''
         Input: (B, seq_len, dim)
@@ -79,8 +80,8 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         batch_size = tf.shape(x)[0]
         seq_len = tf.shape(x)[1]
 
-        x = tf.reshape(x, shape=(batch_size, seq_len, self.num_heads, self.depth)) # (b, seq_len, H, depth)
-        x = tf.transpose(x, perm=[0, 2, 1, 3])                                     # (b, H, seq_len, depth)
+        x = tf.reshape(x, shape=(batch_size, seq_len, self.num_heads, self.depth))  # (b, seq_len, H, depth)
+        x = tf.transpose(x, perm=[0, 2, 1, 3])  # (b, H, seq_len, depth)
         return x
 
     def concat_head(self, x):
@@ -88,8 +89,9 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         Input: (B, H, seq_len, dim)
         '''
         batch_size = tf.shape(x)[0]
-        x = tf.transpose(x, perm=[0, 2, 1, 3])                                     # (b, seq_len, H, depth)
-        x = tf.reshape(x, shape=(batch_size, -1, self.model_dim))                  # (b, seq_len, model_dim)  Where model_dim = (depth * H)
+        x = tf.transpose(x, perm=[0, 2, 1, 3])  # (b, seq_len, H, depth)
+        x = tf.reshape(x,
+                       shape=(batch_size, -1, self.model_dim))  # (b, seq_len, model_dim)  Where model_dim = (depth * H)
         return x
 
     def drop_head(self, x, drop_n_heads, training):
@@ -102,7 +104,8 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         drop_n_heads: drop_head_number, integer.. May change rate in future. This implementation uses just integer
         """
         batch_size = tf.shape(x)[0]
-        assert (self.num_heads - drop_n_heads) != 0, 'To Apply Drop_head, "Num_heads" > "Drop_n_heads", not "Num_heads == "Drop_n_heads"'
+        assert (
+                           self.num_heads - drop_n_heads) != 0, 'To Apply Drop_head, "Num_heads" > "Drop_n_heads", not "Num_heads == "Drop_n_heads"'
 
         if training != True:
             return x
@@ -119,8 +122,8 @@ class MultiHeadAttention(tf.keras.layers.Layer):
             shuffled_head_drop_mask = tf.random.shuffle(head_drop_mask)
             tf_array = tf_array.write(i, shuffled_head_drop_mask)
 
-        tf_array = tf_array.stack()                                         # (B, H)
-        tf_array = tf_array[..., tf.newaxis, tf.newaxis]                    # (b, H, 1, 1)
+        tf_array = tf_array.stack()  # (B, H)
+        tf_array = tf_array[..., tf.newaxis, tf.newaxis]  # (b, H, 1, 1)
 
         drop_result = tf.math.multiply(x, tf_array)
 
@@ -130,27 +133,27 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return drop_result / lambda_value
 
     def call(self, q, k, v, mask, drop_n_heads, training):
-        Q = self.WQ(q)                                              # b, seq_len_q,  dim
-        K = self.WK(k)                                              # b, seq_len_vk, dim
-        V = self.WV(v)                                              # b, seq_len_vk, dim
+        Q = self.WQ(q)  # b, seq_len_q,  dim
+        K = self.WK(k)  # b, seq_len_vk, dim
+        V = self.WV(v)  # b, seq_len_vk, dim
 
         # Where depth = H // model_dim
-        q_split = self.split_head(Q)                                # b, H, seq_len_q,  depth
-        k_split = self.split_head(K)                                # b, H, seq_len_vk, depth
-        v_split = self.split_head(V)                                # b, H, seq_len_vk, depth
+        q_split = self.split_head(Q)  # b, H, seq_len_q,  depth
+        k_split = self.split_head(K)  # b, H, seq_len_vk, depth
+        v_split = self.split_head(V)  # b, H, seq_len_vk, depth
 
-        context_vector, attention_weight = self.scaled_attention(q_split, k_split, v_split, mask)  # b, H, seq_len_q, depth
+        context_vector, attention_weight = self.scaled_attention(q_split, k_split, v_split,
+                                                                 mask)  # b, H, seq_len_q, depth
 
         # Apply Head Drop
         context_vector = self.drop_head(context_vector, drop_n_heads, training)  # b, H, seq_len_q, depth
         if self.debug:
             print(f'Context Vector After Drop Head Applied..\n', context_vector)
 
-        context_vector = self.concat_head(context_vector)   # b, seq_len, model_dim
-
+        context_vector = self.concat_head(context_vector)  # b, seq_len, model_dim
 
         if self.concat_query:
-            context_vector = tf.concat((context_vector, q), axis=-1) # b, seq_len, 2*model_dim
+            context_vector = tf.concat((context_vector, q), axis=-1)  # b, seq_len, 2*model_dim
 
         if self.debug:
             print(f'Context Vector Before Linear Applied..\n', context_vector)
@@ -166,50 +169,77 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         self.feed_forward_dim = feed_forward_dim
         self.model_dim = model_dim
         self.dropout_rate = dropout_rate
-
         self.d1 = tf.keras.layers.Dense(feed_forward_dim)
         self.d1_act = tf.keras.layers.Activation('relu')
         self.dr1 = tf.keras.layers.Dropout(dropout_rate)
-
         self.d2 = tf.keras.layers.Dense(model_dim)
         self.d2_act = tf.keras.layers.Activation('relu')
         self.dr2 = tf.keras.layers.Dropout(dropout_rate)
-
         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-9)
 
-
     def call(self, inputs, training):
-        input_res = inputs                  # (B, seq_len, model_dim)
-        x = self.d1(inputs)                 # (B, seq_len ,feedforward_dim)
-        x = self.d1_act(x)                  # (B, seq_len ,feedforward_dim)
-        x = self.dr1(x)                     # (B, seq_len ,feedforward_dim)
-        x = self.d2(x)                      # (B, seq_len ,model_dim)
-        x = self.d2_act(x)                  # (B, seq_len ,model_dim)
-        x = self.dr2(x)                     # (B, seq_len ,model_dim)
-        res_con = input_res + x             # (B, seq_len ,model_dim)
+        input_res = inputs  # (B, seq_len, model_dim)
+        x = self.d1(inputs)  # (B, seq_len ,feedforward_dim)
+        x = self.d1_act(x)  # (B, seq_len ,feedforward_dim)
+        x = self.dr1(x)  # (B, seq_len ,feedforward_dim)
+        x = self.d2(x)  # (B, seq_len ,model_dim)
+        x = self.d2_act(x)  # (B, seq_len ,model_dim)
+        x = self.dr2(x)  # (B, seq_len ,model_dim)
+        res_con = input_res + x  # (B, seq_len ,model_dim)
         output_ = self.layer_norm(res_con)  # (B, seq_len ,model_dim)
         return output_
 
 
-
+# TODO: REQUIRES TO WRITE TENSOR SHAPE AND TEST
 class EncoderBlock(tf.keras.layers.Layer):
-    def __init__(self, num_heads, model_dim,  dropout_rate, mha_concat_query, debug = False, **kwargs):
+    '''
+    Input: Q, K, V
+    Ouput: Context, Attn
+    '''
+    def __init__(self, num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, debug=False, **kwargs):
         super(EncoderBlock, self).__init__(**kwargs)
-        self.num_heads= num_heads
+        self.num_heads = num_heads
         self.model_dim = model_dim
         self.dropout_rate = dropout_rate
         self.concat_query = mha_concat_query
+        self.feed_forward_dim = feed_forward_dim
         self.debug = debug
 
-        self.mha = MultiHeadAttention(num_heads, model_dim, concat_query = self.concat_query, debug=self.debug)
+        self.mha = MultiHeadAttention(num_heads, model_dim, concat_query=self.concat_query, debug=self.debug)
+        self.ffn = FeedForwardNetwork(feed_forward_dim, model_dim, dropout_rate)
 
+    def call(self, q, k, v, mask, drop_n_heads, training):
+        context_vector, attn_weight = self.mha(q=q, k=k, v=v, mask=mask, training=training, drop_n_heads=drop_n_heads)
+        ffn_out = self.ffn(context_vector, training=training)
+        return ffn_out, attn_weight
 
+class DecoderBlock(tf.keras.layers.Layer):
+    '''
+    Input: Q, K, V
+    Ouput: Context, Attn_1, Attn_2
+    '''
+    def __init__(self, num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, debug=False, **kwargs):
+        super(DecoderBlock, self).__init__(**kwargs)
+        self.num_heads = num_heads
+        self.model_dim = model_dim
+        self.feed_forward_dim = feed_forward_dim
+        self.dropout_rate = dropout_rate
+        self.mha_concat_query = mha_concat_query
+        self.debug = debug
 
+        self.mha_1 = MultiHeadAttention(num_heads, model_dim, concat_query=mha_concat_query, debug=debug)
+        self.mha_2 = MultiHeadAttention(num_heads, model_dim, concat_query=mha_concat_query, debug=debug)
+        self.ffn = FeedForwardNetwork(feed_forward_dim, model_dim, dropout_rate)
 
-
+    def call(self, q, k, v, enc_output, mha_1_mask, mha_2_mask, drop_n_heads, training):
+        mha_1_context, mha_1_attn = self.mha_1(q, k, v, mha_1_mask, drop_n_heads, training)
+        mha_2_context, mha_2_attn = self.mha_2(mha_1_context, enc_output, enc_output, mha_2_mask, drop_n_heads, training)
+        ffn_out = self.ffn(mha_2_context, training=training)
+        return ffn_out, mha_1_attn, mha_2_attn
 
 if __name__ == '__main__':
     from models.masking import create_padding_mask
+
     print('This is Testing Layer Test')
     # Create dummy sequence
     tmp_seq_1 = tf.random.uniform(shape=(2, 8), minval=0, maxval=100, dtype=tf.int32)
@@ -220,7 +250,6 @@ if __name__ == '__main__':
 
     input_seq_1 = tf.concat((tmp_seq_1, tmp_pad_1), axis=-1)
     input_seq_2 = tf.concat((tmp_seq_2, tmp_pad_2), axis=-1)
-
 
     # 1) Where Q = K = V
     input_seq = tf.concat((input_seq_1, input_seq_2), axis=0)
@@ -236,7 +265,8 @@ if __name__ == '__main__':
     print(emb_out.shape)
 
     mha_no_concat = MultiHeadAttention(2, 4, False, debug=True)
-    context_vector, attn_weights = mha_no_concat(q= emb_out, k= emb_out, v= emb_out, mask = padding_mask, drop_n_heads=1, training=True)
+    context_vector, attn_weights = mha_no_concat(q=emb_out, k=emb_out, v=emb_out, mask=padding_mask, drop_n_heads=1,
+                                                 training=True)
 
     print('Final Context Vector', context_vector)
     print('Final Attention Weights', attn_weights)
