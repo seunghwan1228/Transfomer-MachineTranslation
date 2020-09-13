@@ -183,10 +183,10 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         input_res = inputs  # (B, seq_len, model_dim)
         x = self.d1(inputs)  # (B, seq_len ,feedforward_dim)
         x = self.d1_act(x)  # (B, seq_len ,feedforward_dim)
-        x = self.dr1(x)  # (B, seq_len ,feedforward_dim)
+        x = self.dr1(x, training=training)  # (B, seq_len ,feedforward_dim)
         x = self.d2(x)  # (B, seq_len ,model_dim)
         x = self.d2_act(x)  # (B, seq_len ,model_dim)
-        x = self.dr2(x)  # (B, seq_len ,model_dim)
+        x = self.dr2(x, training=training)  # (B, seq_len ,model_dim)
         res_con = input_res + x  # (B, seq_len ,model_dim)
         output_ = self.layer_norm(res_con)  # (B, seq_len ,model_dim)
         return output_
@@ -242,6 +242,7 @@ class DecoderBlock(tf.keras.layers.Layer):
 
 class Encoder(tf.keras.layers.Layer):
     def __init__(self, vocab_size, max_pos_length, num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, n_layers, debug=False, **kwargs):
+        super(Encoder, self).__init__(**kwargs)
         self.vocab_size = vocab_size
         self.max_pos_length = max_pos_length
         self.num_heads = num_heads
@@ -258,27 +259,75 @@ class Encoder(tf.keras.layers.Layer):
 
         self.encoder_blocks = [EncoderBlock(num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, debug) for _ in range(self.n_layers)]
 
-    def call(self, inputs, mask, drop_n_heads, training):
-        seq_length = tf.shape(inputs)[1]
-        emb_out = self.embedding(inputs)
+    def call(self, x, mask, drop_n_heads, training):
+        seq_length = tf.shape(x)[1]
+        emb_out = self.embedding(x)
         emb_rescale_factor = tf.cast(self.model_dim, tf.float32)
         emb_out = emb_out * tf.math.sqrt(emb_rescale_factor)
 
         emb_out = emb_out + self.pos_emb[:, :seq_length, :]
-        x = self.dropout(emb_out)
+        x = self.dropout(emb_out, training=training)
 
         attn_weight = {}
         for i in range(self.n_layers):
             x, attn_weight = self.encoder_blocks[i](q=x, k=x, v=x, mask=mask, drop_n_heads=drop_n_heads, training=training)
-            attn_weight[f'Layer_{i}th_Attention_Weights'] = attn_weight
+            attn_weight[f'Encoder_Layer_{i}th_Attention_Weights'] = attn_weight
 
         return x, attn_weight
 
 
+class Decoder(tf.keras.layers.Layer):
+    def __init__(self, vocab_size, max_pos_length, num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, n_layers, debug=False, **kwargs):
+        super(Decoder, self).__init__(**kwargs)
+        self.vocab_size= vocab_size
+        self.max_pos_length = max_pos_length
+        self.num_heads = num_heads
+        self.model_dim = model_dim
+        self.feed_forward_dim = feed_forward_dim
+        self.dropout_rate = dropout_rate
+        self.mha_concat_query = mha_concat_query
+        self.n_layers = n_layers
+        self.debug = debug
 
+        self.embedding = tf.keras.layers.Embedding(vocab_size, model_dim, mask_zero=True)
+        self.pos_emb = PositionalEncoding()
+        self.dropout = tf.keras.layers.Dropout(dropout_rate)
 
+        self.decoder_blocks = [DecoderBlock(num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, debug=debug) for _ in range(self.n_layers)]
 
+    def call(self, x, enc_output, combined_mask, enc_padding_mask, drop_n_heads, training):
+        seq_length = tf.shape(x)
+        emb_out = self.embedding(x)
+        emb_rescale_factor = tf.cast(self.model_dim, tf.float32)
+        emb_out = emb_out * tf.math.sqrt(emb_rescale_factor)
 
+        emb_out = emb_out + self.pos_emb[:, :seq_length, :]
+        x = self.dropout(emb_out, training=training)
+
+        attn_weight = {}
+        for i in range(self.n_layers):
+            x, attn_weight_1, attn_weight_2 = self.decoder_blocks[i](q=x,
+                                                                     k=enc_output,
+                                                                     v=enc_output,
+                                                                     mha_1_mask=combined_mask,
+                                                                     mha_2_mask=enc_padding_mask,
+                                                                     drop_n_head=drop_n_heads,
+                                                                     training=training)
+            attn_weight[f'Decoder_Layer_1_{i}th_Attention_Weight'] = attn_weight_1
+            attn_weight[f'Decoder_Layer_2_{i}th_ATtention_Weight'] = attn_weight_2
+
+        return x, attn_weight
+
+class DecoderProjection(tf.keras.layers.Layer):
+    def __init__(self, decoder_vocab_size, **kwargs):
+        super(DecoderProjection, self).__init__(**kwargs)
+        self.linear = tf.keras.layers.Dense(decoder_vocab_size, activation='softmax')
+
+    def call(self, inputs):
+        x = self.linear(inputs)
+        return x
+
+# TODO REQUIRES TO TEST MODULES, THEN BUILD FULL-TRANSFORMER NETWORK
 
 if __name__ == '__main__':
     from models.masking import create_padding_mask
