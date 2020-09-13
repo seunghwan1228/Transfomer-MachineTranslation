@@ -8,8 +8,10 @@
 # 5) Encoder
 # 6) DecoderBlock - Baed on Multi Head Attention
 # 7) Decoder
+from poplib import POP3_SSL
 
 import tensorflow as tf
+from models.pos_encoding import PositionalEncoding
 
 
 class ScaledDotAttention(tf.keras.layers.Layer):
@@ -190,7 +192,6 @@ class FeedForwardNetwork(tf.keras.layers.Layer):
         return output_
 
 
-# TODO: REQUIRES TO WRITE TENSOR SHAPE AND TEST
 class EncoderBlock(tf.keras.layers.Layer):
     '''
     Input: Q, K, V
@@ -212,6 +213,7 @@ class EncoderBlock(tf.keras.layers.Layer):
         context_vector, attn_weight = self.mha(q=q, k=k, v=v, mask=mask, training=training, drop_n_heads=drop_n_heads)
         ffn_out = self.ffn(context_vector, training=training)
         return ffn_out, attn_weight
+
 
 class DecoderBlock(tf.keras.layers.Layer):
     '''
@@ -236,6 +238,47 @@ class DecoderBlock(tf.keras.layers.Layer):
         mha_2_context, mha_2_attn = self.mha_2(mha_1_context, enc_output, enc_output, mha_2_mask, drop_n_heads, training)
         ffn_out = self.ffn(mha_2_context, training=training)
         return ffn_out, mha_1_attn, mha_2_attn
+
+
+class Encoder(tf.keras.layers.Layer):
+    def __init__(self, vocab_size, max_pos_length, num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, n_layers, debug=False, **kwargs):
+        self.vocab_size = vocab_size
+        self.max_pos_length = max_pos_length
+        self.num_heads = num_heads
+        self.model_dim = model_dim
+        self.feed_forward_dim = feed_forward_dim
+        self.dropout_rate = dropout_rate
+        self.mha_concat_query = mha_concat_query
+        self.n_layers = n_layers
+        self.debug = debug
+
+        self.embedding = tf.keras.layers.Embedding(vocab_size, model_dim, mask_zero=True)
+        self.pos_emb = PositionalEncoding()  # Layer
+        self.dropout = tf.keras.layers.Dropout(dropout_rate)
+
+        self.encoder_blocks = [EncoderBlock(num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, debug) for _ in range(self.n_layers)]
+
+    def call(self, inputs, mask, drop_n_heads, training):
+        seq_length = tf.shape(inputs)[1]
+        emb_out = self.embedding(inputs)
+        emb_rescale_factor = tf.cast(self.model_dim, tf.float32)
+        emb_out = emb_out * tf.math.sqrt(emb_rescale_factor)
+
+        emb_out = emb_out + self.pos_emb[:, :seq_length, :]
+        x = self.dropout(emb_out)
+
+        attn_weight = {}
+        for i in range(self.n_layers):
+            x, attn_weight = self.encoder_blocks[i](q=x, k=x, v=x, mask=mask, drop_n_heads=drop_n_heads, training=training)
+            attn_weight[f'Layer_{i}th_Attention_Weights'] = attn_weight
+
+        return x, attn_weight
+
+
+
+
+
+
 
 if __name__ == '__main__':
     from models.masking import create_padding_mask
