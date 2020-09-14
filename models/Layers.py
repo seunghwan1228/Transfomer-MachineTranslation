@@ -265,15 +265,15 @@ class Encoder(tf.keras.layers.Layer):
         emb_rescale_factor = tf.cast(self.model_dim, tf.float32)
         emb_out = emb_out * tf.math.sqrt(emb_rescale_factor)
 
-        emb_out = emb_out + self.pos_emb[:, :seq_length, :]
+        emb_out = emb_out + self.pos_emb(emb_out)
         x = self.dropout(emb_out, training=training)
 
-        attn_weight = {}
+        attn_weights = {}
         for i in range(self.n_layers):
             x, attn_weight = self.encoder_blocks[i](q=x, k=x, v=x, mask=mask, drop_n_heads=drop_n_heads, training=training)
-            attn_weight[f'Encoder_Layer_{i}th_Attention_Weights'] = attn_weight
+            attn_weights[f'Encoder_Layer_{i}th_Attention_Weights'] = attn_weight
 
-        return x, attn_weight
+        return x, attn_weights
 
 
 class Decoder(tf.keras.layers.Layer):
@@ -301,22 +301,24 @@ class Decoder(tf.keras.layers.Layer):
         emb_rescale_factor = tf.cast(self.model_dim, tf.float32)
         emb_out = emb_out * tf.math.sqrt(emb_rescale_factor)
 
-        emb_out = emb_out + self.pos_emb[:, :seq_length, :]
+        emb_out = emb_out + self.pos_emb(emb_out)
         x = self.dropout(emb_out, training=training)
 
-        attn_weight = {}
+        attn_weights = {}
         for i in range(self.n_layers):
             x, attn_weight_1, attn_weight_2 = self.decoder_blocks[i](q=x,
-                                                                     k=enc_output,
-                                                                     v=enc_output,
+                                                                     k=x,
+                                                                     v=x,
+                                                                     enc_output=enc_output,
                                                                      mha_1_mask=combined_mask,
                                                                      mha_2_mask=enc_padding_mask,
-                                                                     drop_n_head=drop_n_heads,
+                                                                     drop_n_heads=drop_n_heads,
                                                                      training=training)
-            attn_weight[f'Decoder_Layer_1_{i}th_Attention_Weight'] = attn_weight_1
-            attn_weight[f'Decoder_Layer_2_{i}th_ATtention_Weight'] = attn_weight_2
+            attn_weights[f'Decoder_Layer_1_{i}th_Attention_Weight'] = attn_weight_1
+            attn_weights[f'Decoder_Layer_2_{i}th_Attention_Weight'] = attn_weight_2
 
-        return x, attn_weight
+        return x, attn_weights
+
 
 class DecoderProjection(tf.keras.layers.Layer):
     def __init__(self, decoder_vocab_size, **kwargs):
@@ -327,7 +329,7 @@ class DecoderProjection(tf.keras.layers.Layer):
         x = self.linear(inputs)
         return x
 
-# TODO REQUIRES TO TEST MODULES, THEN BUILD FULL-TRANSFORMER NETWORK
+
 
 if __name__ == '__main__':
     from models.masking import create_padding_mask
@@ -362,3 +364,13 @@ if __name__ == '__main__':
 
     print('Final Context Vector', context_vector)
     print('Final Attention Weights', attn_weights)
+
+
+    print('Encoder')
+    tmp_encoder = Encoder(100, 100, 2, 4, 4, 0.2, True, 2, True)
+    tmp_encoder_output = tmp_encoder(input_seq, None, 1, True)
+
+
+    print('Decoder')
+    tmp_decoder = Decoder(100, 100, 2, 4, 4, 0.2, True, 2, True)
+    tmp_decoder_output = tmp_decoder(input_seq, tmp_encoder_output[0], None, None, 1, True)

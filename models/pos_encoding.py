@@ -34,6 +34,11 @@ class PositionalEncoding(tf.keras.layers.Layer):
         return pos * angles # (seq_length, d_model)
 
     def call(self, inputs):
+        '''
+
+        :param inputs: Embedding Ouput
+        :return: Positional Encoding as the same size of embedding
+        '''
         seq_length = inputs.shape.as_list()[-2]
         d_model = inputs.shape.as_list()[-1]
 
