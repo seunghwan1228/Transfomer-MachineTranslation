@@ -52,3 +52,53 @@ class TransformerModel(tf.keras.models.Model):
                                                          training=training)
         vocab_proj = self.vocab_proj(decoder_output)
         return vocab_proj, encoder_attn_dict, decoder_attn_dict
+
+
+if __name__ == '__main__':
+    from models.masking import create_padding_mask, create_combined_mask
+
+    print('This is Testing Layer Test')
+
+    def create_input_data():
+        # Create dummy sequence
+        tmp_seq_1 = tf.random.uniform(shape=(2, 8), minval=0, maxval=100, dtype=tf.int32)
+        tmp_pad_1 = tf.zeros(shape=(2, 2), dtype=tf.int32)
+
+        tmp_seq_2 = tf.random.uniform(shape=(2, 4), minval=0, maxval=100, dtype=tf.int32)
+        tmp_pad_2 = tf.zeros(shape=(2, 6), dtype=tf.int32)
+
+        input_seq_1 = tf.concat((tmp_seq_1, tmp_pad_1), axis=-1)
+        input_seq_2 = tf.concat((tmp_seq_2, tmp_pad_2), axis=-1)
+
+        # 1) Where Q = K = V
+        input_seq = tf.concat((input_seq_1, input_seq_2), axis=0)
+        return input_seq
+
+    encoder_input = create_input_data()
+    decoder_input = create_input_data()
+
+    print('Encoder Input', encoder_input)
+    print('Decoder Input', decoder_input)
+
+    tmp_model = TransformerModel(101, 101, 101, 101, 2, 4, 4, 0.2, False, 2, True)
+
+
+    encoder_mask = create_padding_mask(encoder_input)
+    print('Encoder Mask', encoder_mask)
+
+    combined_mask = create_combined_mask(decoder_input)
+    print('Decoder Mask One', combined_mask)
+
+
+    tmp_model_out, enc_attns, dec_attns = tmp_model(encoder_input,
+                                                    decoder_input,
+                                                    encoder_mask,
+                                                    combined_mask,
+                                                    encoder_mask,
+                                                    1,
+                                                    True)
+
+    print('Model Output - SoftMaxed', tmp_model_out)
+
+    print('Model Encoder Attention', enc_attns)
+    print('Model Decoder Attention', dec_attns)
