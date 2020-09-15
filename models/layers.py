@@ -8,7 +8,7 @@
 # 5) Encoder
 # 6) DecoderBlock - Baed on Multi Head Attention
 # 7) Decoder
-from poplib import POP3_SSL
+
 
 import tensorflow as tf
 from models.pos_encoding import PositionalEncoding
