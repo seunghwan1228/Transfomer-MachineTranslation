@@ -36,7 +36,6 @@ model = TransformerModel(encoder_vocab_size=config_dict['vocab_size'],
                          n_layers=config_dict['n_layers'],
                          debug=config_dict['debug'])
 
-
 # Learning Rate Schedule
 model_learning_rate = CustomSchedule(config_dict['model_dim'])
 model_optimizer = tf.keras.optimizers.Adam(learning_rate=model_learning_rate,
@@ -90,7 +89,7 @@ def model_train_step(config, model, encoder_input_seq, decoder_target_seq):
     decoder_target = decoder_target_seq[:, 1:]  # 1, 2, 3, 4, <eos>
     encoder_padding_mask = create_padding_mask(encoder_input_seq)
     decoder_padding_one_mask = create_combined_mask(decoder_input)
-    with tf.gradients() as tape:
+    with tf.GradientTape() as tape:
         prediction, _, _ = model(encoder_input = encoder_input_seq,
                                  decoder_input = decoder_input,
                                  encoder_mask = encoder_padding_mask,

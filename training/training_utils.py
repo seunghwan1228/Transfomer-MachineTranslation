@@ -13,7 +13,7 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
         self.model_dim = tf.cast(model_dim, tf.float32)
         self.warmup_steps = warmup_steps
 
-    def call(self, step):
+    def __call__(self, step):
         arg1 = tf.math.rsqrt(step)
         arg2 = step * (self.warmup_steps ** -1.5)
 
