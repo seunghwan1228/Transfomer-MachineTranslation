@@ -50,7 +50,7 @@ model_optimizer = tf.keras.optimizers.Adam(learning_rate=model_learning_rate,
 #  otherwise, it is scalar.
 #  (Note dN-1, because all loss function reduce by1 dimension, usually axis=-1)
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,
-                                                            reduction=None)
+                                                            reduction='none')
 
 def loss_function(y_true, y_pred):
     '''
@@ -138,3 +138,5 @@ def train_start():
             checkpoint_manager.save()
         print(f'Epoch: {e}\tLoss: {train_loss.result()}\tAccuracy: {train_accuracy.result()}')
         print(f'Duration: {time.time() - START}')
+
+train_start()
