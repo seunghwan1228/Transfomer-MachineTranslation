@@ -21,10 +21,13 @@ dataset_name = config_dict['dataset_name']
 data_creator = CreateData(config_path='conf')
 train_datasets, valid_datasets, test_datasets = data_creator.create_all()
 
+data_creator.tokenizer.lang_one_vocab_size
+
+
 
 # Define Model
-model = TransformerModel(encoder_vocab_size=len(data_creator.tokenizer.lang_one_tokenizer.word_index)+2,
-                         decoder_vocab_size=len(data_creator.tokenizer.lang_two_tokenizer.word_index)+2,
+model = TransformerModel(encoder_vocab_size=data_creator.tokenizer.lang_one_vocab_size,
+                         decoder_vocab_size=data_creator.tokenizer.lang_two_vocab_size,
                          encoder_max_pos=config_dict['max_pos_length'],
                          decoder_max_pos=config_dict['max_pos_length'],
                          num_heads=config_dict['num_heads'],
@@ -77,26 +80,30 @@ train_loss = tf.keras.metrics.Mean(name='Train Loss')
 # tensors. To avoid re-tracing due to the variable sequence lengths or variable
 # batch sizes (the last batch is smaller), use input_signature to specify
 # more generic shapes.
-input_signature = [tf.TensorSpec(shape=(None, None), dtype=tf.int64),
-                   tf.TensorSpec(shape=(None, None), dtype=tf.int64)]
+train_input_signature = [tf.TensorSpec(shape=(None, None), dtype=tf.int64),
+                         tf.TensorSpec(shape=(None, None), dtype=tf.int64)]
 
 
 # Train Step
-@tf.function(input_signature=input_signature)
-def model_train_step(config, model, encoder_input_seq, decoder_target_seq):
+@tf.function(input_signature=train_input_signature)
+def model_train_step(encoder_input_seq, decoder_target_seq):
     decoder_input = decoder_target_seq[:, :-1]  # <sos> 1, 2, 3, 4, 5
     decoder_target = decoder_target_seq[:, 1:]  # 1, 2, 3, 4, <eos>
+
     encoder_padding_mask = create_padding_mask(encoder_input_seq)
     decoder_padding_one_mask = create_combined_mask(decoder_input)
+
     with tf.GradientTape() as tape:
         prediction, _, _ = model(encoder_input = encoder_input_seq,
                                  decoder_input = decoder_input,
                                  encoder_mask = encoder_padding_mask,
                                  decoder_mask_one = decoder_padding_one_mask,
                                  decoder_mask_two = encoder_padding_mask,
-                                 drop_n_heads = config['drop_n_heads'],
+                                 drop_n_heads = config_dict['drop_n_heads'],
                                  training=True)
+
         loss_value = loss_function(decoder_target, prediction)
+
     model_gradient = tape.gradient(loss_value, model.trainable_variables)
     model_optimizer.apply_gradients(zip(model_gradient, model.trainable_variables))
     train_accuracy(decoder_target, prediction)
@@ -123,11 +130,11 @@ def train_start():
         train_accuracy.reset_states()
         train_loss.reset_states()
 
-        for (batch, (input_data, target_data)) in enumerate(train_datasets):
+        for (batch, (encoder_input_seq, decoder_target_seq)) in enumerate(train_datasets):
             model_train_step(config=config_dict,
                              model=model,
-                             encoder_input_seq=input_data,
-                             decoder_target_seq=target_data)
+                             encoder_input_seq=encoder_input_seq,
+                             decoder_target_seq=decoder_target_seq)
 
             if batch % 50 == 0:
                 print(f'Epoch: {e}\tLoss: {train_loss.result()}\tAccuracy: {train_accuracy.result()}')

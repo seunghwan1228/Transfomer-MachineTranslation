@@ -11,7 +11,7 @@
 
 
 import tensorflow as tf
-from models.pos_encoding import PositionalEncoding
+from models.pos_encoding import PositionalEncoding, positional_encoding
 
 
 class ScaledDotAttention(tf.keras.layers.Layer):
@@ -254,7 +254,7 @@ class Encoder(tf.keras.layers.Layer):
         self.debug = debug
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, model_dim, mask_zero=True)
-        self.pos_emb = PositionalEncoding()  # Layer
+        self.pos_emb = positional_encoding(max_pos_length, model_dim)  # Layer
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
 
         self.encoder_blocks = [EncoderBlock(num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, debug) for _ in range(self.n_layers)]
@@ -265,7 +265,7 @@ class Encoder(tf.keras.layers.Layer):
         emb_rescale_factor = tf.cast(self.model_dim, tf.float32)
         emb_out = emb_out * tf.math.sqrt(emb_rescale_factor)
 
-        emb_out = emb_out + self.pos_emb(emb_out)
+        emb_out = emb_out + self.pos_emb[:, :seq_length, :]
         x = self.dropout(emb_out, training=training)
 
         attn_weights = {}
@@ -290,18 +290,18 @@ class Decoder(tf.keras.layers.Layer):
         self.debug = debug
 
         self.embedding = tf.keras.layers.Embedding(vocab_size, model_dim, mask_zero=True)
-        self.pos_emb = PositionalEncoding()
+        self.pos_emb = positional_encoding(max_pos_length, model_dim)
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
 
         self.decoder_blocks = [DecoderBlock(num_heads, model_dim, feed_forward_dim, dropout_rate, mha_concat_query, debug=debug) for _ in range(self.n_layers)]
 
     def call(self, x, enc_output, combined_mask, enc_padding_mask, drop_n_heads, training):
-        seq_length = tf.shape(x)
+        seq_length = tf.shape(x)[1]
         emb_out = self.embedding(x)
         emb_rescale_factor = tf.cast(self.model_dim, tf.float32)
         emb_out = emb_out * tf.math.sqrt(emb_rescale_factor)
 
-        emb_out = emb_out + self.pos_emb(emb_out)
+        emb_out = emb_out + self.pos_emb[:, :seq_length, :]
         x = self.dropout(emb_out, training=training)
 
         attn_weights = {}

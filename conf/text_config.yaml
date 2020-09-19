@@ -7,12 +7,12 @@ dataset_name: 'ted_hrlr_translate/pt_to_en'
 # Tokenizer
 # Tokenizer Options
 # 'subword', 'sentencepiece', 'word
-tokenizer: 'word'
+tokenizer: 'subword'
 
 
-vocab_size: 32000
 
 # Sentence-Piece Config
+vocab_size: 32000
 lang_one_file: 'lang_one.txt'
 lang_two_file: 'lang_two.txt'
 pad_id: 0
@@ -22,7 +22,6 @@ unk_id: 3
 spm_model_saver: 'prepare_data/spm/'
 model_prefix: 'prepare_data/spm/tp_spm'
 character_coverage: 1.0
-
 # SentencePiece Model Type
 # Model Type options
 # 'bpe', 'unigram', 'char', 'word'
