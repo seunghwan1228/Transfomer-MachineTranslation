@@ -22,10 +22,9 @@ data_creator = CreateData(config_path='conf')
 train_datasets, valid_datasets, test_datasets = data_creator.create_all()
 
 
-
 # Define Model
-model = TransformerModel(encoder_vocab_size=config_dict['vocab_size'],
-                         decoder_vocab_size=config_dict['vocab_size'],
+model = TransformerModel(encoder_vocab_size=len(data_creator.tokenizer.lang_one_tokenizer.word_index)+2,
+                         decoder_vocab_size=len(data_creator.tokenizer.lang_two_tokenizer.word_index)+2,
                          encoder_max_pos=config_dict['max_pos_length'],
                          decoder_max_pos=config_dict['max_pos_length'],
                          num_heads=config_dict['num_heads'],
