@@ -31,3 +31,16 @@ model_type: 'bpe'
 
 # Dataset
 batch_size: 32
+
+# Model
+max_pos_length: 10000
+num_heads: 8
+model_dim: 512
+feed_forward_dim: 1024
+dropout_rate: 0.2
+mha_concat_query: True
+n_layers: 6
+
+
+# Model Debug Mode
+debug: False
