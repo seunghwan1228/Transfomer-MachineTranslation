@@ -142,4 +142,5 @@ def train_start():
         print(f'Epoch: {e}\tLoss: {train_loss.result()}\tAccuracy: {train_accuracy.result()}')
         print(f'Duration: {time.time() - START}')
 
+print('\n\nInitialize Training...\n\n')
 train_start()
