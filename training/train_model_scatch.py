@@ -64,7 +64,7 @@ def loss_function(y_true, y_pred):
      (or can be broadcasted to this shape),
     then each loss element of y_pred is scaled by the corresponding value of sample_weight.
     '''
-    mask = tf.math.logical_not(tf.math.equal(y_true, 0))
+    mask = tf.cast(tf.math.logical_not(tf.math.equal(y_true, 0)), dtype=tf.int64)
     loss_ = loss_object(y_true, y_pred, sample_weight=mask)
     return loss_
 
@@ -85,7 +85,6 @@ train_input_signature = [tf.TensorSpec(shape=(None, None), dtype=tf.int64),
 
 
 # Train Step
-@tf.function(input_signature=train_input_signature)
 def model_train_step(encoder_input_seq, decoder_target_seq):
     decoder_input = decoder_target_seq[:, :-1]  # <sos> 1, 2, 3, 4, 5
     decoder_target = decoder_target_seq[:, 1:]  # 1, 2, 3, 4, <eos>
@@ -122,6 +121,7 @@ checkpoint_manager = tf.train.CheckpointManager(checkpoint=checkpoint,
                                                 step_counter=model_step)
 
 
+
 def train_start():
     # Perform Training
     for e in tqdm.tqdm(range(config_dict['epoch'])):
@@ -131,9 +131,7 @@ def train_start():
         train_loss.reset_states()
 
         for (batch, (encoder_input_seq, decoder_target_seq)) in enumerate(train_datasets):
-            model_train_step(config=config_dict,
-                             model=model,
-                             encoder_input_seq=encoder_input_seq,
+            model_train_step(encoder_input_seq=encoder_input_seq,
                              decoder_target_seq=decoder_target_seq)
 
             if batch % 50 == 0:

@@ -36,10 +36,10 @@ class CreateData:
     def _create_tf_dataset(self, dataset, is_train):
         encoded_lang_one, encoded_lang_two = self._tokenize_data(dataset, is_train)
 
-        language_one = tf.ragged.constant(encoded_lang_one, dtype=tf.int32).to_tensor()
+        language_one = tf.ragged.constant(encoded_lang_one, dtype=tf.int64).to_tensor()
         language_one_data = tf.data.Dataset.from_tensor_slices(language_one)
 
-        language_two = tf.ragged.constant(encoded_lang_two, dtype=tf.int32).to_tensor()
+        language_two = tf.ragged.constant(encoded_lang_two, dtype=tf.int64).to_tensor()
         language_two_data = tf.data.Dataset.from_tensor_slices(language_two)
 
         datasets = tf.data.Dataset.zip((language_one_data, language_two_data))

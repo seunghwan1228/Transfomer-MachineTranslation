@@ -21,7 +21,7 @@ def positional_encoding(pos, model_dim):
     angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
 
     pos_encoding = angle_rads[np.newaxis, ...]
-    return pos_encoding
+    return tf.cast(pos_encoding, tf.float32)
 
 
 
