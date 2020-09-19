@@ -39,6 +39,7 @@ class TransformerModel(tf.keras.models.Model):
 
         self.vocab_proj = DecoderProjection(decoder_vocab_size=decoder_vocab_size)
 
+
     def call(self, encoder_input, decoder_input, encoder_mask, decoder_mask_one, decoder_mask_two, drop_n_heads, training):
         encoder_output, encoder_attn_dict = self.encoder(encoder_input,
                                                          encoder_mask,
@@ -52,6 +53,7 @@ class TransformerModel(tf.keras.models.Model):
                                                          training=training)
         vocab_proj = self.vocab_proj(decoder_output)
         return vocab_proj, encoder_attn_dict, decoder_attn_dict
+
 
 
 if __name__ == '__main__':

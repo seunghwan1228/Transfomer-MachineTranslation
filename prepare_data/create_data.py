@@ -62,6 +62,8 @@ class CreateData:
         print('Create Tensorflow Dataset Complete..\n')
         return train_datasets, valid_datasets, test_datasets
 
+    # TODO: REQUIRES TO ADD CACHE TO RESTORE DATA, NOT CREATING DATA FROM SCRATCH (AVAILABLE TENSORFLOW >= 2.3)
+
 
 
 if __name__ == '__main__':

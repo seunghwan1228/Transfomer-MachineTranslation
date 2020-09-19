@@ -7,7 +7,7 @@ dataset_name: 'ted_hrlr_translate/pt_to_en'
 # Tokenizer
 # Tokenizer Options
 # 'subword', 'sentencepiece', 'word
-tokenizer: 'sentencepiece'
+tokenizer: 'word'
 
 
 vocab_size: 32000
@@ -40,6 +40,14 @@ feed_forward_dim: 1024
 dropout_rate: 0.2
 mha_concat_query: True
 n_layers: 6
+
+# Model Training
+log_dir: './model_log/train'
+max_to_keep: 5
+keep_n_hours: 1
+
+epoch: 100
+drop_n_heads: 2
 
 
 # Model Debug Mode
