@@ -22,7 +22,6 @@ data_creator = CreateData(config_path='conf')
 train_datasets, valid_datasets, test_datasets = data_creator.create_all()
 
 
-
 # Define Model
 model = TransformerModel(encoder_vocab_size=data_creator.tokenizer.lang_one_vocab_size,
                          decoder_vocab_size=data_creator.tokenizer.lang_two_vocab_size,
@@ -82,7 +81,7 @@ train_input_signature = [tf.TensorSpec(shape=(None, None), dtype=tf.int64),
                          tf.TensorSpec(shape=(None, None), dtype=tf.int64)]
 
 
-# Train Step
+# Train Step - My model includes python syntax, so could not compile as tensorflow graph..
 def model_train_step(encoder_input_seq, decoder_target_seq):
     decoder_input = decoder_target_seq[:, :-1]  # <sos> 1, 2, 3, 4, 5
     decoder_target = decoder_target_seq[:, 1:]  # 1, 2, 3, 4, <eos>

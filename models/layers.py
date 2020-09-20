@@ -379,3 +379,6 @@ if __name__ == '__main__':
     print('Decoder')
     tmp_decoder = Decoder(100, 100, 2, 4, 4, 0.2, True, 2, True)
     tmp_decoder_output = tmp_decoder(input_seq, tmp_encoder_output[0], None, None, 1, True)
+
+
+    tmp_decoder_output
