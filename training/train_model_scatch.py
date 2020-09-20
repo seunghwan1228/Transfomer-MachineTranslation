@@ -120,6 +120,11 @@ checkpoint_manager = tf.train.CheckpointManager(checkpoint=checkpoint,
 
 
 def train_start():
+    if checkpoint_manager.latest_checkpoint:
+        checkpoint.restore(checkpoint_manager.latest_checkpoint)
+        print('Restored Latest Checkpoint')
+    else:
+        print('Initializing Training from Scratch')
     # Perform Training
     for e in tqdm.tqdm(range(config_dict['epoch'])):
         START = time.time()
@@ -139,5 +144,6 @@ def train_start():
         print(f'Epoch: {e}\tLoss: {train_loss.result()}\tAccuracy: {train_accuracy.result()}')
         print(f'Duration: {time.time() - START}')
 
-print('\n\nInitialize Training...\n\n')
+
+
 train_start()

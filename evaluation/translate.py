@@ -19,18 +19,19 @@ train_datasets, valid_datasets, test_datasets = data_creator.create_all()
 
 
 def evaluate(inp_sentence, model, data_creator, max_length):
-    inp_sentence_converted = data_creator.convert_to_ids([inp_sentence], [], False)
+    inp_sentence_converted = data_creator.tokenizer.convert_to_ids([inp_sentence], [], False)
     inp_sentence_converted = inp_sentence_converted[0]
-    decoder_input = [data_creator.tokenizer.lang_two_sos]
+    inp_sentence_converted = tf.constant(inp_sentence_converted)
 
+    decoder_input = [data_creator.tokenizer.lang_two_sos]
     translate_result = tf.expand_dims(decoder_input, 0)
 
     for i in range(max_length):
-        enc_padding = create_padding_mask(inp_sentence)
+        enc_padding = create_padding_mask(inp_sentence_converted)
         combined_mask = create_combined_mask(translate_result)
 
         prediction, encoder_attn, decoder_attn = model(encoder_input = inp_sentence_converted,
-                                                     decoder_input = decoder_input,
+                                                     decoder_input = translate_result,
                                                      encoder_mask = enc_padding,
                                                      decoder_mask_one = combined_mask,
                                                      decoder_mask_two = enc_padding,
