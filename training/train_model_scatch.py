@@ -21,8 +21,6 @@ dataset_name = config_dict['dataset_name']
 data_creator = CreateData(config_path='conf')
 train_datasets, valid_datasets, test_datasets = data_creator.create_all()
 
-data_creator.tokenizer.lang_one_vocab_size
-
 
 
 # Define Model
