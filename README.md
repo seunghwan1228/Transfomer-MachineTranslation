@@ -1,4 +1,6 @@
-# Transfomer-MachineTranslation
+# Notion: Will re-start this repo from scratch
+
+# V1: Transfomer-MachineTranslation
 Building Transfomer Machine Translate till Non-Autoregressive
 
 
